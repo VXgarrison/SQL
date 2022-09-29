@@ -1,0 +1,32 @@
+--Create a clothing store database
+
+CREATE TABLE VMarket (itemNumber INTEGER PRIMARY KEY, clothes text, color text, quantity INTEGER, price INTEGER); 
+
+INSERT INTO VMarket VALUES
+(1, 'long sleeve', 'black', 20, 9.99), 
+(2, 'short sleeve', 'blue', 40, 4.99), 
+(3, 'jeans', 'blue', 25, 14.99), 
+(4, 'dresses', 'green', 15, 12.99), 
+(5, 'sneakers', 'white', 10, 29.99)
+;
+
+--display the database ordered by price in ascending order.
+SELECT * FROM VMarket
+ORDER BY price asc;
+
+--display the database ordered by price in descending order.
+SELECT * FROM VMarket
+ORDER BY price desc; 
+
+--display sum of the prices
+SELECT SUM (price) FROM VMarket; 
+
+--display average price 
+SELECT AVG (price) FROM VMarket;
+
+--display total quantity of items
+SELECT SUM (quantity) FROM VMarket; 
+
+--display database by prices hgher than $11
+SELECT * FROM VMarket
+WHERE price >11; 
