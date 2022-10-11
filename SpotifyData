@@ -1,0 +1,63 @@
+# For this project, I downloaded Spotify data from Kaggle (top 50 songs in 2021) and I created a table to insert Spotify data into.
+
+#Creating the table: 
+CREATE TABLE BIT_DB.Spotifydata (
+id integer PRIMARY KEY,
+artist_name varchar NOT NULL,
+track_name varchar NOT NULL,
+track_id varchar NOT NULL,
+popularity integer NOT NULL,
+danceability decimal(4,3) NOT NULL,
+energy decimal(4,3) NOT NULL,
+key integer NOT NULL,
+loudness decimal(5,3) NOT NULL,
+mode integer NOT NULL,
+speechiness decimal(5,4) NOT NULL,
+acousticness decimal(6,5) NOT NULL,
+instrumentalness text NOT NULL,
+liveness decimal(5,4) NOT NULL,
+valence decimal(4,3) NOT NULL,
+tempo decimal(6,3) NOT NULL,
+duration_ms integer NOT NULL,
+time_signature integer NOT NULL 
+)
+
+#Then I inserted the Spotify Data .csv into the table and I explored the data using the following SQL :
+
+#1. I determined the avg popularity, danceability, and energy by artist and track. 
+SELECT artist_name ,track_name,
+avg(popularity),
+avg(danceability),
+avg(energy),
+FROM BIT_DB.spotifydata
+GROUP BY artist_name, track_name;
+
+#2. I determnined the top 10 tracks by popularity
+SELECT track_name, artist_name, popularity
+FROM BIT_DB.spotifydata
+ORDER BY popularity desc
+LIMIT 10;
+
+#3. I determined the top 10 artists by their average popularity
+Select artist_name, AVG (popularity)
+FROM BIT_DB.Spotifydata
+GROUP by artist_name
+ORDER by avg(popularity) desc
+LIMIT 10;
+
+#4. Select artists who have more than 2 songs in the top 50
+Select COUNT (artist_name) totalTracks, artist_name
+FROM BIT_DB.Spotifydata
+GROUP BY artist_name
+HAVING COUNT (artist_name) >2;
+
+#5. Selecting how the most popular songs/artists stack up
+SELECT track_name, artist_name, 
+CASE
+     WHEN popularity > AVG (popularity) THEN 'above average'
+     WHEN popularity = AVG (popularity) THEN 'average'
+     WHEN popularity < AVG (popularity) THEN 'below average'
+END AS popularity_rating
+FROM BIT_DB.SpotifyData
+GROUP BY artist_name
+ORDER by popularity_rating asc;
