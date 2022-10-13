@@ -61,3 +61,17 @@ END AS popularity_rating
 FROM BIT_DB.SpotifyData
 GROUP BY artist_name
 ORDER by popularity_rating asc;
+
+#6. Listing name of artists, popularity with each track and average popularity as a whole
+Select * FROM BIT_DB.SpotifyData;
+
+With average_popularity AS (
+Select artist_name, AVG (popularity) AS avg_popularity
+from SpotifyData
+GROUP by artist_name)
+
+Select sp.artist_name, sp.track_name, sp.popularity, ap.avg_popularity
+from SpotifyData sp
+JOIN average_popularity ap
+ON sp.artist_name = ap.artist_name
+ORDER BY sp.artist_name; 
