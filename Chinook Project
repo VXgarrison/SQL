@@ -1,0 +1,65 @@
+Chinook database has 11 tables which represents a digital media store and includes tables for artists, albums, media tracks, invoices, and customers.
+
+#1. Show Customers (their full names, customer ID, and country) who are not in the US.
+Select FirstName, LastName, CustomerID, Country
+FROM customers
+WHERE Country <> 'USA';
+
+#2. Show only the Customers from Brazil
+Select FirstName, LastName from customers
+WHERE country = 'Brazil';
+
+#3. Find the Invoices of customers who are from Brazil. The resulting table should show the customer's full name, Invoice ID, Date of the invoice, and billing country.
+Select c.FirstName, c.LastName, i.InvoiceId, i.BillingCountry
+FROM customers c
+JOIN invoices i
+ON c.customerID = i.customerid
+WHERE BillingCountry = 'Brazil';
+
+#4. Show the Employees who are Sales Agent
+Select FirstName, LastName, Title from employees
+WHERE title like '%sales%agent%';
+
+#5.Provide a query that shows the invoices associated with each sales agent. The resulting table should include the Sales Agent's full name
+WITH EC AS (
+Select employees.FirstName, employees.LastName, employees.EmployeeId
+FROM employees
+JOIN customers
+ON employees.employeeid = customers.SupportRepId
+WHERE employees.title like '%sales%agent%'
+GROUP BY employees.firstname, employees.LastName),
+
+CI AS (
+Select customers.SupportRepId, invoices.InvoiceId, invoices.customerid
+FROM customers
+JOIN invoices
+ON customers.customerID = invoices.CustomerId
+)
+
+Select EC.FirstName, EC.LastName, CI.InvoiceId
+FROM CI
+JOIN EC
+ON EC.EmployeeId = CI.SupportRepId
+ORDER BY CI.InvoiceId ASC;
+
+#6. -Show the Invoice Total, Customer name, Country, and Sales Agent name for all invoices and customers. I've included the customer ID's as well.
+
+WITH InvoiceInfo AS (
+Select COUNT (invoices.InvoiceId) AS Invoice_Total, customers.FirstName || ' ' || 
+customers.LastName AS Customer_FullName,customers.country, 
+invoices.customerid
+FROM customers
+JOIN invoices
+ON customers.CustomerId= invoices.CustomerId
+GROUP BY invoices.BillingAddress),
+
+SalesInfo AS (
+Select employees.FirstName|| ' '|| employees.Lastname AS Employee_FullName, Customers.CustomerId
+FROM employees
+JOIN customers
+ON employees.employeeid = customers.SupportRepId)
+
+Select ii.*, si.*
+FROM InvoiceInfo ii
+JOIN SalesInfo si
+ON ii.customerId = si.customerid;
