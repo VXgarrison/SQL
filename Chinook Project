@@ -63,3 +63,24 @@ Select ii.*, si.*
 FROM InvoiceInfo ii
 JOIN SalesInfo si
 ON ii.customerId = si.customerid;
+
+
+#7. Write a query that includes the purchased track name with each invoice line ID.
+
+WITH InvoiceINFO AS (
+Select i.InvoiceID, i.customerId, ii.InvoiceLineId
+FROM invoices i                                   
+join invoice_items ii
+ON i.invoiceID = ii.InvoiceLineId), 
+ 
+TrackInfo AS (
+Select DISTINCT tracks.Name, invoice_items.InvoiceLineId, invoice_items.InvoiceId
+FROM tracks                                   ///Provides Names of PURCHASED TRACKS (Total is 412). As opposed to total number of Tracks, which is 1000.
+JOIN invoice_items
+ON tracks.TrackId = invoice_items.TrackId
+)
+
+Select TrackInfo.Name, InvoiceINFO.InvoiceLineId
+FROM TrackInfo
+JOIN InvoiceInfo
+ON invoiceInfo.InvoiceLineId= TrackInfo.InvoiceLineId;
