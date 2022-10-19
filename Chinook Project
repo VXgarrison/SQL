@@ -84,3 +84,15 @@ Select TrackInfo.Name, InvoiceINFO.InvoiceLineId
 FROM TrackInfo
 JOIN InvoiceInfo
 ON invoiceInfo.InvoiceLineId= TrackInfo.InvoiceLineId;
+
+
+
+#8. Write a query that includes the purchased track name AND artist name with each invoice line ID
+Select artists.Name as 'ArtistName', tracks.Name as 'TracksName', invoice_items.invoiceLineID
+FROM albums
+JOIN artists
+ON albums.ArtistId = artists.artistid
+JOIN tracks
+ON albums.AlbumId = tracks.albumid
+JOIN invoice_items
+ON invoice_items.trackid = tracks.trackid;;
