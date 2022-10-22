@@ -87,7 +87,7 @@ ON invoiceInfo.InvoiceLineId= TrackInfo.InvoiceLineId;
 
 
 
-#8. Write a query that includes the purchased track name AND artist name with each invoice line ID
+#8. Write a query that includes the track name AND artist name with each invoice line ID
 Select artists.Name as 'ArtistName', tracks.Name as 'TracksName', invoice_items.invoiceLineID
 FROM albums
 JOIN artists
@@ -95,4 +95,26 @@ ON albums.ArtistId = artists.artistid
 JOIN tracks
 ON albums.AlbumId = tracks.albumid
 JOIN invoice_items
-ON invoice_items.trackid = tracks.trackid;;
+ON invoice_items.trackid = tracks.trackid;
+
+
+#9. Provide a query that shows all the Tracks, and include the Album name, Media type, and Genre.
+Select tracks.name as TrackName, albums.title as AlbumName, media_types.Name as MediaType, genres.Name as GenreName
+from tracks
+left JOIN albums ON tracks.AlbumId = albums.AlbumId
+left JOIN media_types ON tracks.MediaTypeId = media_types.mediatypeid
+left JOIN genres ON tracks.genreid = genres.GenreId;  
+
+
+#10. Show the total sales made by each sales agent.
+Select employees.firstname, employees.lastname, customers.SupportRepId, SUM (invoices.Total) as TotalSales
+FROM customers
+JOIN invoices
+ON customers.customerID = invoices.CustomerId
+JOIN employees
+on customers.SupportRepId = employees.EmployeeId
+GROUP BY supportrepid;
+
+
+
+
