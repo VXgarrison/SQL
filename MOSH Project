@@ -1,0 +1,37 @@
+#1. Calculating total sales, total payments and expected payments for the 1st half  of 2019, then 2nd half of 2019, and 2019 as a whole.
+SELECT
+'first half of 2019' as date_range,
+SUM(invoice_total) as total_sales,
+SUM(payment_total) as total_payment,
+SUM(invoice_total - payment_total) as what_we_expect
+FROM invoices
+WHERE invoice_date 
+	BETWEEN '2019-01-01' AND '2019-06-30'
+UNION
+SELECT 'second half of 2019' as date_range,
+SUM(invoice_total) as total_sales,
+SUM(payment_total) as total_payment,
+SUM(invoice_total -payment_total) as what_we_expect
+FROM invoices
+WHERE invoice_date 
+	BETWEEN '2019-07-01' AND '2019-12-31'
+UNION
+SELECT 'total' as date_range,
+SUM(invoice_total) as total_sales,
+SUM(payment_total) as total_payments,
+SUM(invoice_total - payment_total) as what_we_expect
+FROM invoices
+WHERE invoice_date 
+	BETWEEN '2019-01-01' AND '2019-12-31'
+
+#2. Find employees whose salary is greater than the average salary
+SELECT 
+  first_name, 
+  last_name,
+  salary
+FROM employees
+WHERE salary > (
+	SELECT AVG(salary)
+    FROM employees
+    )
+    
