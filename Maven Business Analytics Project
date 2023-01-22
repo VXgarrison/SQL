@@ -1,4 +1,4 @@
-Maven Project has 6 tables in the database representing information for factory orders
+Maven Project has 6 tables in the database representing information for orders placed online
   order_item_refunds
   order_items
   orders
