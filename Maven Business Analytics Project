@@ -1,0 +1,17 @@
+Maven Project has 6 tables in the database representing information for factory orders
+  order_item_refunds
+  order_items
+  orders
+  products
+  website_pageviews and website_sessions
+
+#1. Finding top traffic sources up until April 11, 2012 and breaking down by UTM source, campaign and referring domain. 
+  SELECT 
+	utm_source,
+	utm_campaign,
+	http_referer,
+    COUNT(DISTINCT website_session_id) as sessions
+FROM website_sessions
+WHERE  created_at < '2012-04-12'
+GROUP BY 1,2,3
+ORDER BY 4 DESC
