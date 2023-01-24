@@ -43,7 +43,7 @@ WHERE ws.created_at < '2012-05-11'
 GROUP BY 1
 
 #4. Traffic Source Segment Trending - Looking at device level trends, if we are seeing more desktop or mobile traffic to the website. 
-Display number of sessions for desktop or mobile and group by startweek date from 4/15-06/09 2012
+Display weekly trends for number of sessions for desktop or mobile from 4/15-06/09 2012
 SELECT
 	-- Year(created_at) AS yr,
 	-- week(created_at) AS wk,
