@@ -41,3 +41,17 @@ WHERE ws.created_at < '2012-05-11'
 	AND utm_source = 'gsearch'
     AND utm_campaign = 'nonbrand'
 GROUP BY 1
+
+#4. Traffic Source Segment Trending - Looking at device level trends, if we are seeing more desktop or mobile traffic to the website. 
+Display number of sessions for desktop or mobile and group by startweek date from 4/15-06/09 2012
+SELECT
+	-- Year(created_at) AS yr,
+	-- week(created_at) AS wk,
+	MIN(DATE(created_at)) as week_start_date,
+	COUNT(DISTINCT CASE WHEN device_type = 'desktop' THEN website_session_id ELSE NULL END) as dtop_sessions,
+	COUNT(DISTINCT CASE WHEN device_type = 'mobile' THEN website_session_id ELSE NULL END) as mob_sessions
+FROM website_sessions
+WHERE created_at  BETWEEN '2012-04-15' AND '2012-06-09'
+				AND utm_source = 'gsearch'
+				AND utm_campaign = 'nonbrand'
+ GROUP BY Year(created_at), week(created_at)
