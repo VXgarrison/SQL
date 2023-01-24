@@ -1,4 +1,4 @@
-Maven Project has 6 tables in the database representing information for orders placed online
+Maven Project has 6 tables in the database representing information for orders placed online from March 2012 to May 2015. 
   order_item_refunds
   order_items
   orders
@@ -15,3 +15,29 @@ FROM website_sessions
 WHERE  created_at < '2012-04-12'
 GROUP BY 1,2,3
 ORDER BY 4 DESC
+
+#2. Analyzing traffic trends. Display number of sessions up until May 10th for gsearch nonbrand (utm source and campaign) and group by week start date
+SELECT
+-- Year(created_at) AS yr,
+-- week(created_at) AS wk,
+MIN(DATE(created_at)) as week_start_date,
+COUNT(DISTINCT website_session_id) as num_of_sessions
+FROM website_sessions
+WHERE created_at < '2012-05-10'
+	AND utm_source = 'gsearch'
+   	AND utm_campaign = 'nonbrand'
+group by Year(created_at), week(created_at) 
+
+#3. Traffic Source Bid Optimization - Pulling conversion rates from website session to order and group by device type up until May 11th 2012
+for the same Gsearch and nonbrand UTM source and campaign
+SELECT
+	ws.device_type, 
+	COUNT(DISTINCT ws.website_session_id) as sessions,
+	COUNT(DISTINCT o.order_id) as orders,
+	COUNT(DISTINCT o.order_id)/COUNT(DISTINCT ws.website_session_id) as convRate
+FROM website_sessions ws
+	LEFT JOIN orders o ON ws.website_session_id = o.website_session_id
+WHERE ws.created_at < '2012-05-11'
+	AND utm_source = 'gsearch'
+    AND utm_campaign = 'nonbrand'
+GROUP BY 1
