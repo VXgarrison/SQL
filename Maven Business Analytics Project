@@ -54,4 +54,4 @@ FROM website_sessions
 WHERE created_at  BETWEEN '2012-04-15' AND '2012-06-09'
 				AND utm_source = 'gsearch'
 				AND utm_campaign = 'nonbrand'
- GROUP BY Year(created_at), week(created_at)
+ GROUP BY Year(created_at), week(created_at) 
