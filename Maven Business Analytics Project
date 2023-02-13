@@ -157,4 +157,41 @@ GROUP BY
 	sessions_w_landing_page_demo.landing_page
 ORDER BY 
 	sessions_w_landing_page_demo.website_session_id;
+	
+	
+	
+#9. CALCULATING BOUNCE RATES FROM /HOME LANDING PAGE - Pulling bounce rates for traffic landing on the home page. We want to see
+3 numbers : Sessions, Bounced sessions and the % of sessions which were bounced(bounce rate)
+
+Create temporary table Home4                   --FIRST TEMP TABLE
+SELECT
+	pageview_url,
+	website_session_id,
+    MIN(website_pageview_id) as min_pageview_id
+FROM website_pageviews
+WHERE pageview_url = '/home' 
+	AND created_at <'2012-06-14'
+GROUP BY 2;
+-- SELECT COUNT(website_session_id) FROM home4
+
+CREATE TEMPORARY TABLE bounced_sessions4       --SECOND TEMP TABLE
+SELECT
+home4.website_session_id,
+home4.pageview_url as landingPage,
+COUNT(website_pageviews.website_pageview_id) AS count_of_pages_viewed
+FROM home4
+LEFT JOIN website_pageviews
+ON website_pageviews.website_session_id = home4.website_session_id
+GROUP BY 1,2
+HAVING
+	COUNT(website_pageviews.website_pageview_id) = 1; 
+    
+    
+SELECT
+    COUNT(home4.website_session_id) AS total_sessions,
+    COUNT(bounced_sessions4.website_session_id) AS total_bounceSessions,
+    COUNT(bounced_sessions4.website_session_id)/COUNT(home4.website_session_id) as BounceRate
+FROM home4
+    LEFT JOIN bounced_sessions4
+		ON home4.website_session_id = bounced_sessions4.website_session_id;
 
