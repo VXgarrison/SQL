@@ -195,3 +195,54 @@ FROM home4
     LEFT JOIN bounced_sessions4
 		ON home4.website_session_id = bounced_sessions4.website_session_id;
 
+
+#10. LANDING PAGE TREND ANALYSIS. We have a 2nd pageURL called /lander-1 to see if we can get the bounce rates lower compared to the /home landing page.
+We want to pull the volume of (utmsource: gsearch) (utmcampaign nonbrand) traffic on /home and /lander-1 pages, trended weekly from 6/1 - 8/31/2012
+ALSO need overall bounce rate trended weekly for this volume. 
+
+COLUMNS NEEDED TO DISPLAY : week_start_date | bounce_rate | home_sessions | lander_sessions
+CREATE TEMPORARY TABLE home_lander_PageViews
+SELECT
+	website_pageviews.website_session_id,
+    MIN(website_pageviews.website_pageview_id) as min_pageview,
+    website_pageviews.pageview_url as landing_page
+FROM website_pageviews
+INNER JOIN website_sessions
+	ON website_pageviews.website_session_id = website_sessions.website_session_id
+    AND website_sessions.created_at BETWEEN '2012-06-01' AND '2012-08-31'
+    AND website_sessions.utm_campaign = 'nonbrand'
+    AND website_sessions.utm_source = 'gsearch'
+WHERE
+website_pageviews.pageview_url IN ('/home', '/lander-1')
+GROUP BY 1;
+SELECT * FROM home_lander_PageViews;
+
+
+CREATE TEMPORARY TABLE Bounce_sessions
+SELECT
+home_lander_PageViews.website_session_id,
+home_lander_PageViews.landing_page,
+COUNT(website_pageviews.website_pageview_id) AS count_of_pagesViewed
+FROM home_lander_PageViews
+LEFT JOIN website_pageviews
+	ON home_lander_PageViews.website_session_id = website_pageviews.website_session_id
+GROUP BY 1,2
+HAVING COUNT(website_pageviews.website_pageview_id) =1; -- LIMITING TO BOUNCE SESSIONS'
+SELECT COUNT(website_session_id) FROM Bounce_sessions;
+
+ 
+SELECT
+-- YEARWEEK(website_pageviews.created_at),
+MIN(DATE(website_pageviews.created_at)) AS week_start_date,
+COUNT( DISTINCT bounce_sessions.website_session_id)/COUNT(DISTINCT home_lander_pageviews.website_session_id) as bounce_Rate,
+COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/home' THEN home_lander_pageviews.website_session_id ELSE NULL END) as home_sessions,
+COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/lander-1' THEN home_lander_pageviews.website_session_id ELSE NULL END) as Lander_sessions
+-- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/home' THEN Bounce_sessions.website_session_id ELSE NULL END) as HomeBounces,
+-- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/lander-1' THEN Bounce_sessions.website_session_id ELSE NULL END) as LanderBounces
+FROM website_pageviews 
+LEFT JOIN Bounce_sessions
+	ON bounce_sessions.website_session_id = website_pageviews.website_session_id
+LEFT JOIN home_lander_pageviews
+	ON home_lander_pageviews.website_session_id = website_pageviews.website_session_id
+WHERE website_pageviews.created_at BETWEEN '2012-06-01' AND '2012-08-31'
+GROUP BY YEARWEEK(website_pageviews.created_at);
