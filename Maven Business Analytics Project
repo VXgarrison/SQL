@@ -3,246 +3,192 @@ Maven Project has 6 tables in the database representing information for orders p
   order_items
   orders
   products
-  website_pageviews and website_sessions
+  website_pageviews
+  website_sessions
 
-#1. Finding top traffic sources up until April 11, 2012 and breaking down by UTM source, campaign and referring domain. 
-  SELECT 
-	utm_source,
-	utm_campaign,
-	http_referer,
-    COUNT(DISTINCT website_session_id) as sessions
-FROM website_sessions
-WHERE  created_at < '2012-04-12'
-GROUP BY 1,2,3
-ORDER BY 4 DESC
-
-#2. Analyzing traffic trends. Display number of sessions up until May 10th for gsearch nonbrand (utm source and campaign) and group by week start date
-SELECT
--- Year(created_at) AS yr,
--- week(created_at) AS wk,
-MIN(DATE(created_at)) as week_start_date,
-COUNT(DISTINCT website_session_id) as num_of_sessions
-FROM website_sessions
-WHERE created_at < '2012-05-10'
-	AND utm_source = 'gsearch'
-   	AND utm_campaign = 'nonbrand'
-group by Year(created_at), week(created_at) 
-
-#3. Traffic Source Bid Optimization - Pulling conversion rates from website session to order and group by device type up until May 11th 2012
-for the same Gsearch and nonbrand UTM source and campaign
-SELECT
-	ws.device_type, 
-	COUNT(DISTINCT ws.website_session_id) as sessions,
-	COUNT(DISTINCT o.order_id) as orders,
-	COUNT(DISTINCT o.order_id)/COUNT(DISTINCT ws.website_session_id) as convRate
-FROM website_sessions ws
-	LEFT JOIN orders o ON ws.website_session_id = o.website_session_id
-WHERE ws.created_at < '2012-05-11'
-	AND utm_source = 'gsearch'
-    AND utm_campaign = 'nonbrand'
-GROUP BY 1
-
-#4. Traffic Source Segment Trending - Looking at device level trends, if we are seeing more desktop or mobile traffic to the website. 
-Display weekly trends for number of sessions for desktop and mobile from 4/15-06/09 2012
-SELECT
-	-- Year(created_at) AS yr,
-	-- week(created_at) AS wk,
-	MIN(DATE(created_at)) as week_start_date,
-	COUNT(DISTINCT CASE WHEN device_type = 'desktop' THEN website_session_id ELSE NULL END) as dtop_sessions,
-	COUNT(DISTINCT CASE WHEN device_type = 'mobile' THEN website_session_id ELSE NULL END) as mob_sessions
-FROM website_sessions
-WHERE created_at  BETWEEN '2012-04-15' AND '2012-06-09'
-				AND utm_source = 'gsearch'
-				AND utm_campaign = 'nonbrand'
- GROUP BY Year(created_at), week(created_at) 
- 
- #5. Doing entry page analysis in order to figure out where I should focus my energy on. I want to see which page of the website customers saw first (landing page).
- 
- CREATE TEMPORARY TABLE first_pageview
-SELECT 
-	website_session_id,
-    MIN(website_pageview_id) as MinPageViewID
-FROM website_pageviews
-WHERE website_pageview_id < 1000
-GROUP BY 1;
-
-SELECT 
-website_pageviews.pageview_url as landingPage, -- aka 'Entry page'
-COUNT(DISTINCT first_pageview.website_session_id) as NumberofSessions
-FROM first_pageview
-LEFT JOIN website_pageviews
-	ON first_pageview.minPageViewID = website_pageviews.website_pageview_id
-GROUP BY 1;
-
-#6. Identifiying top website pages - I need to pull up most-viewed website pages, ranked by session volume before June 9th.
-SELECT
-pageview_URL,
-COUNT(DISTINCT website_pageview_id) as PageViews
-FROM website_pageviews
-WHERE created_at < '2012-06-09'
-GROUP BY 1
-ORDER BY 2 DESC
-
---I want to analyze the performance of each of our top pages to look for improvement opportunities. What metrics would I look at and how would I be able
-to pull those metrics from the database?
-
-#7. Figuring out which website has the most ENTRY page and rank by session volume as of June 12th.
- 
-CREATE TEMPORARY TABLE first_pv_per_session
-SELECT 
-	website_session_id,
-    MIN(website_pageview_id) as first_pv
-FROM website_pageviews
-WHERE created_at < '2012-06-12'
-GROUP BY 1;
-
-SELECT 
-	website_pageviews.pageview_url as landingpage_URL,
-   COUNT( DISTINCT first_pv_per_session.website_session_id) as Total
- FROM first_pv_per_session
-	LEFT JOIN website_pageviews
-    ON first_pv_per_session.first_pv = website_pageviews.website_pageview_id
-    GROUP BY 1;
-    
-    
-#8. Landing page analysis. BUSINESS CONTEXT: We want to see landing page performace for a certain period of time.
-Using multi-step query with multiple temporary tables 
-
-CREATE TEMPORARY TABLE first_pageviews_demo
-SELECT
-	website_pageviews.website_session_id,
-    MIN(website_pageviews.website_pageview_id) as min_pageview_id
-FROM website_pageviews
-INNER JOIN website_sessions
-	ON website_pageviews.website_session_id = website_sessions.website_session_id
-    AND website_sessions.created_at BETWEEN '2014-01-01' AND '2014-02-01'
-GROUP BY 1;
-
--- next, we'll bring in the landing page to each session
-CREATE TEMPORARY TABLE sessions_w_landing_page_demo
-SELECT
-first_pageviews_demo.website_session_id,
-website_pageviews.pageview_url as landing_page
-FROM first_pageviews_demo
-	LEFT JOIN website_pageviews
-		ON website_pageviews.website_pageview_id = first_pageviews_demo.min_pageview_id;
-
--- next, we make a table to include a count of pageviews per session
--- first, we'll see all the sessions. After we will limit to bounced sessions and create temp table
-CREATE TEMPORARY TABLE bounced_sessions_only
-SELECT
- sessions_w_landing_page_demo.website_session_id,
- sessions_w_landing_page_demo.landing_page,
- COUNT(website_pageviews.website_pageview_id) AS count_of_pages_viewed
- 
- FROM sessions_w_landing_page_demo
- LEFT JOIN website_pageviews
-	ON website_pageviews.website_session_id = sessions_w_landing_page_demo.website_session_id
-GROUP BY
-	sessions_w_landing_page_demo.website_session_id,
-    sessions_w_landing_page_demo.landing_page
-HAVING
-	COUNT(website_pageviews.website_pageview_id) = 1;
-    -- using this having to operate on our group level data
-
-SELECT
-	sessions_w_landing_page_demo.landing_page,
-    COUNT(DISTINCT sessions_w_landing_page_demo.website_session_id) AS sessions,
-    COUNT(DISTINCT bounced_sessions_only.website_session_id) AS bounced_sessions,
-    COUNT(DISTINCT bounced_sessions_only.website_session_id) / COUNT(DISTINCT sessions_w_landing_page_demo.website_session_id) AS bounce_rate
-FROM sessions_w_landing_page_demo
-LEFT JOIN bounced_sessions_only
-	ON sessions_w_landing_page_demo.website_session_id = bounced_sessions_only.website_session_id
-GROUP BY 
-	sessions_w_landing_page_demo.landing_page
-ORDER BY 
-	sessions_w_landing_page_demo.website_session_id;
-	
-	
-	
-#9. CALCULATING BOUNCE RATES FROM /HOME LANDING PAGE - Pulling bounce rates for traffic landing on the home page. We want to see
-3 numbers : Sessions, Bounced sessions and the % of sessions which were bounced(bounce rate)
-
-Create temporary table Home4                   --FIRST TEMP TABLE
-SELECT
-	pageview_url,
-	website_session_id,
-    MIN(website_pageview_id) as min_pageview_id
-FROM website_pageviews
-WHERE pageview_url = '/home' 
-	AND created_at <'2012-06-14'
-GROUP BY 2;
--- SELECT COUNT(website_session_id) FROM home4
-
-CREATE TEMPORARY TABLE bounced_sessions4       --SECOND TEMP TABLE
-SELECT
-home4.website_session_id,
-home4.pageview_url as landingPage,
-COUNT(website_pageviews.website_pageview_id) AS count_of_pages_viewed
-FROM home4
-LEFT JOIN website_pageviews
-ON website_pageviews.website_session_id = home4.website_session_id
-GROUP BY 1,2
-HAVING
-	COUNT(website_pageviews.website_pageview_id) = 1; 
-    
-    
-SELECT
-    COUNT(home4.website_session_id) AS total_sessions,
-    COUNT(bounced_sessions4.website_session_id) AS total_bounceSessions,
-    COUNT(bounced_sessions4.website_session_id)/COUNT(home4.website_session_id) as BounceRate
-FROM home4
-    LEFT JOIN bounced_sessions4
-		ON home4.website_session_id = bounced_sessions4.website_session_id;
-
-
-#10. LANDING PAGE TREND ANALYSIS. We have a 2nd pageURL called /lander-1 to see if we can get the bounce rates lower compared to the /home landing page.
-We want to pull the volume of (utmsource: gsearch) (utmcampaign nonbrand) traffic on /home and /lander-1 pages, trended weekly from 6/1 - 8/31/2012
-ALSO need overall bounce rate trended weekly for this volume. 
-
-COLUMNS NEEDED TO DISPLAY : week_start_date | bounce_rate | home_sessions | lander_sessions
-CREATE TEMPORARY TABLE home_lander_PageViews
-SELECT
-	website_pageviews.website_session_id,
-    MIN(website_pageviews.website_pageview_id) as min_pageview,
-    website_pageviews.pageview_url as landing_page
-FROM website_pageviews
-INNER JOIN website_sessions
-	ON website_pageviews.website_session_id = website_sessions.website_session_id
-    AND website_sessions.created_at BETWEEN '2012-06-01' AND '2012-08-31'
-    AND website_sessions.utm_campaign = 'nonbrand'
-    AND website_sessions.utm_source = 'gsearch'
-WHERE
-website_pageviews.pageview_url IN ('/home', '/lander-1')
-GROUP BY 1;
-SELECT * FROM home_lander_PageViews;
-
-
-CREATE TEMPORARY TABLE Bounce_sessions
-SELECT
-home_lander_PageViews.website_session_id,
-home_lander_PageViews.landing_page,
-COUNT(website_pageviews.website_pageview_id) AS count_of_pagesViewed
-FROM home_lander_PageViews
-LEFT JOIN website_pageviews
-	ON home_lander_PageViews.website_session_id = website_pageviews.website_session_id
-GROUP BY 1,2
-HAVING COUNT(website_pageviews.website_pageview_id) =1; -- LIMITING TO BOUNCE SESSIONS'
-SELECT COUNT(website_session_id) FROM Bounce_sessions;
-
- 
-SELECT
--- YEARWEEK(website_pageviews.created_at),
-MIN(DATE(website_pageviews.created_at)) AS week_start_date,
-COUNT( DISTINCT bounce_sessions.website_session_id)/COUNT(DISTINCT home_lander_pageviews.website_session_id) as bounce_Rate,
-COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/home' THEN home_lander_pageviews.website_session_id ELSE NULL END) as home_sessions,
-COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/lander-1' THEN home_lander_pageviews.website_session_id ELSE NULL END) as Lander_sessions
--- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/home' THEN Bounce_sessions.website_session_id ELSE NULL END) as HomeBounces,
--- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/lander-1' THEN Bounce_sessions.website_session_id ELSE NULL END) as LanderBounces
+#1. I want to see list of the pageview_URLS and rank them by most session volume.  
+SELECT  
+    pageview_url,  
+    COUNT(DISTINCT website_pageview_id) as pageviews 
 FROM website_pageviews 
-LEFT JOIN Bounce_sessions
-	ON bounce_sessions.website_session_id = website_pageviews.website_session_id
-LEFT JOIN home_lander_pageviews
-	ON home_lander_pageviews.website_session_id = website_pageviews.website_session_id
-WHERE website_pageviews.created_at BETWEEN '2012-06-01' AND '2012-08-31'
-GROUP BY YEARWEEK(website_pageviews.created_at);
+WHERE created_at < '2012-06-09' 
+GROUP BY 1 
+ORDER BY pageviews DESC; 
+ 
+
+#2. Doing entry page analysis in order to figure out where I should focus my energy on. 
+I want to see which page of the website customers saw first (landing page) up till 6/9/12 and rank by volume.  
+
+CREATE TEMPORARY TABLE first_pageview 
+SELECT  
+	website_session_id, 
+	MIN(website_pageview_id) as MinPageViewID 
+FROM website_pageviews 
+WHERE website_pageview_id < 1000 
+GROUP BY 1; 
+
+SELECT  
+	website_pageviews.pageview_url as landingPage, -- aka 'Entry page' 
+	COUNT(DISTINCT first_pageview.website_session_id) as NumberofSessions 
+FROM first_pageview 
+LEFT JOIN website_pageviews 
+	ON first_pageview.minPageViewID = website_pageviews.website_pageview_id 
+GROUP BY 1; 
+
+#3. Calculating bounce rates: I need to pull up bounce rates for traffic landing on the homepage and 
+display results as Sessions, Bounce Sessions and % of sessions that bounced (rate).  
+
+Create temporary table Home4  
+SELECT 
+	pageview_url, 
+	website_session_id, 
+    MIN(website_pageview_id) as min_pageview_id 
+FROM website_pageviews 
+WHERE pageview_url = '/home'  
+AND created_at <'2012-06-14' 
+GROUP BY 2; 
+
+CREATE TEMPORARY TABLE bounced_sessions4       
+SELECT 
+	home4.website_session_id, 
+	home4.pageview_url as landingPage, 
+	COUNT(website_pageviews.website_pageview_id) AS count_of_pages_viewed 
+FROM home4 
+LEFT JOIN website_pageviews 
+	ON website_pageviews.website_session_id = home4.website_session_id 
+GROUP BY 1,2 
+HAVING 
+	COUNT(website_pageviews.website_pageview_id) = 1;  
+
+SELECT 
+    COUNT(home4.website_session_id) AS total_sessions, 
+    COUNT(bounced_sessions4.website_session_id) AS total_bounceSessions, 
+    COUNT(bounced_sessions4.website_session_id)/COUNT(home4.website_session_id) as BounceRate 
+FROM home4 
+    LEFT JOIN bounced_sessions4 
+ON home4.website_session_id = bounced_sessions4.website_session_id; 
+
+ 
+
+ 
+
+#3. Analyzing landing page tests. I need to pull bounce rates for BOTH groups (/lander-1 , /home)  
+
+CREATE TEMPORARY TABLE Lander2 
+SELECT 
+	website_pageviews.pageview_url, 
+	website_pageviews.website_session_id, 
+	MIN(website_pageviews.website_pageview_id) as min_pageview_id 
+FROM website_pageviews 
+INNER JOIN website_sessions 
+	ON website_pageviews.website_session_id = website_sessions.website_session_id 
+WHERE website_pageviews.pageview_url = '/lander-1' 
+AND website_pageviews.created_at < '2012-07-28' 
+    AND website_sessions.utm_source = 'gsearch' 
+    AND website_sessions.utm_campaign = 'nonbrand' 
+GROUP BY 2; 
+
+CREATE TEMPORARY TABLE LanderBounce2 
+SELECT 
+	lander2.website_session_id, 
+	lander2.pageview_url as LandingPage, 
+COUNT(website_pageviews.website_pageview_id) as Count_Pagesviewed 
+FROM lander2 
+LEFT JOIN website_pageviews 
+	ON lander2.website_session_id = website_pageviews.website_session_id 
+GROUP BY 1,2 
+HAVING 
+	COUNT(website_pageviews.website_pageview_id) =1; 
+
+CREATE TEMPORARY TABLE Home2 
+SELECT 
+	website_pageviews.pageview_url, 
+	website_pageviews.website_session_id, 
+	MIN(website_pageviews.website_pageview_id) as min_pageview_id 
+FROM website_pageviews 
+LEFT JOIN website_sessions 
+	ON website_pageviews.website_session_id = website_sessions.website_session_id 
+WHERE website_pageviews.pageview_url = '/home' 
+AND website_pageviews.created_at BETWEEN '2012-06-19' AND '2012-07-28' 
+    AND website_sessions.utm_source = 'gsearch' 
+    AND website_sessions.utm_campaign = 'nonbrand' 
+GROUP BY 2; 
+
+CREATE TEMPORARY TABLE HomeBounce2 
+
+SELECT 
+	home2.website_session_id, 
+	home2.pageview_url as LandingPage, 
+COUNT(website_pageviews.website_pageview_id) as Count_Pagesviewed 
+FROM home2 
+LEFT JOIN website_pageviews 
+	ON home2.website_session_id = website_pageviews.website_session_id 
+GROUP BY 1,2 
+HAVING COUNT(website_pageviews.website_pageview_id) =1; 
+
+SELECT  
+	'/home' as LandingPage, 
+	COUNT(DISTINCT Home2.website_session_id) AS total_sessions, 
+	COUNT(DISTINCT HomeBounce2.website_session_id) AS total_BounceSessions, 
+	COUNT(DISTINCT HomeBounce2.website_session_id)  / COUNT(Home2.website_session_id) as BounceRate 
+FROM Home2 
+LEFT JOIN HomeBounce2 
+    ON Home2.website_session_id = HomeBounce2.website_session_id 
+UNION 
+SELECT  
+	'/lander-1' as LandingPage, 
+	COUNT(DISTINCT lander2.website_session_id) AS total_sessions, 
+	COUNT(DISTINCT LanderBounce2.website_session_id) AS total_BounceSessions, 
+	COUNT(DISTINCT LanderBounce2.website_session_id)  / COUNT(lander2.website_session_id) as BounceRate 
+FROM Lander2 
+LEFT JOIN LanderBounce2 
+    ON lander2.website_session_id = LanderBounce2.website_session_id; 
+
+ 
+
+#4. LANDING PAGE TREND ANALYSIS. We have a 2nd pageURL called /lander-1 to see if we can get the bounce rates lower compared to the /home landing page.  
+We want to pull the volume of (utmsource: gsearch) (utmcampaign nonbrand) traffic on /home and /lander-1 pages, trended weekly from 6/1 - 8/31/2012 
+ALSO need overall bounce rate trended weekly for this volume.  
+COLUMNS NEEDED TO DISPLAY : week_start_date | bounce_rate | home_sessions | lander_sessions 
+
+CREATE TEMPORARY TABLE home_lander_PageViews 
+SELECT 
+	website_pageviews.website_session_id, 
+	MIN(website_pageviews.website_pageview_id) as min_pageview, 
+	website_pageviews.pageview_url as landing_page 
+FROM website_pageviews 
+INNER JOIN website_sessions 
+ON website_pageviews.website_session_id = website_sessions.website_session_id 
+    AND website_sessions.created_at BETWEEN '2012-06-01' AND '2012-08-31' 
+    AND website_sessions.utm_campaign = 'nonbrand' 
+    AND website_sessions.utm_source = 'gsearch' 
+WHERE 
+	website_pageviews.pageview_url IN ('/home', '/lander-1') 
+GROUP BY 1; 
+
+CREATE TEMPORARY TABLE Bounce_sessions 
+SELECT 
+	home_lander_PageViews.website_session_id, 
+	home_lander_PageViews.landing_page, 
+	COUNT(website_pageviews.website_pageview_id) AS count_of_pagesViewed 
+FROM home_lander_PageViews 
+LEFT JOIN website_pageviews 
+	ON home_lander_PageViews.website_session_id = website_pageviews.website_session_id 
+GROUP BY 1,2 
+HAVING COUNT(website_pageviews.website_pageview_id) =1; -- LIMITING TO BOUNCE SESSIONS' 
+
+SELECT 
+-- YEARWEEK(website_pageviews.created_at), 
+MIN(DATE(website_pageviews.created_at)) AS week_start_date, 
+COUNT( DISTINCT bounce_sessions.website_session_id)/COUNT(DISTINCT home_lander_pageviews.website_session_id) as bounce_Rate, 
+COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/home' THEN home_lander_pageviews.website_session_id ELSE NULL END) as home_sessions, 
+COUNT( DISTINCT CASE WHEN home_lander_pageviews.landing_page = '/lander-1' THEN home_lander_pageviews.website_session_id ELSE NULL END) as Lander_sessions 
+-- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/home' THEN Bounce_sessions.website_session_id ELSE NULL END) as HomeBounces, 
+-- COUNT( DISTINCT CASE WHEN Bounce_sessions.landing_page = '/lander-1' THEN Bounce_sessions.website_session_id ELSE NULL END) as LanderBounces 
+FROM website_pageviews  
+LEFT JOIN Bounce_sessions 
+	ON bounce_sessions.website_session_id = website_pageviews.website_session_id 
+LEFT JOIN home_lander_pageviews 
+	ON home_lander_pageviews.website_session_id = website_pageviews.website_session_id 
+WHERE website_pageviews.created_at BETWEEN '2012-06-01' AND '2012-08-31' 
+GROUP BY YEARWEEK(website_pageviews.created_at); 
