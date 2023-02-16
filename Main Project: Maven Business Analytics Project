@@ -1,10 +1,11 @@
-Maven Project has 6 tables in the database representing information for orders placed online from March 2012 to May 2015. 
+Maven Project has 6 tables representing an ecommerece database with information for orders placed online from March 2012 to May 2015. 
   order_item_refunds
   order_items
   orders
   products
   website_pageviews
   website_sessions
+  
 
 #1. I want to see list of the pageview_URLS and rank them by most session volume.  
 SELECT  
