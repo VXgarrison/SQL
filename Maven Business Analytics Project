@@ -443,3 +443,278 @@ GROUP BY 1
 		billing to order rate : 0.6269 (6.2%)
 
 
+--------------------------------------------- SECTION FIVE : CHANNEL PORTFOLIO ANALYSIS ------------------------------------------------------
+
+#1. I need to pull the weekly trended session volume from Aug 22 2012 – Nov 29 2012 
+Compare Gsearch nonbrand AND bsearch nonbrand 
+
+SELECT 
+
+	-- YEARWEEK(website_sessions.created_at),  
+	MIN(DATE(website_sessions.created_at)) AS week_start_date, 
+	COUNT(DISTINCT  
+		CASE WHEN utm_source = 'gsearch' THEN website_sessions.website_session_id 
+		ELSE NULL END) AS gsearch_sessions, 
+	COUNT(DISTINCT  
+		CASE WHEN utm_source = 'bsearch'  THEN website_sessions.website_session_id 
+	ELSE NULL END) AS bsearch_sessions 
+FROM website_sessions 
+WHERE website_sessions.created_at BETWEEN '2012-08-22' AND '2012-11-29' 
+AND utm_campaign = 'nonbrand' 
+GROUP by YEARWEEK(website_sessions.created_at); 
+
+-- From here we can see bsearch gets about 1/3 traffic of gsearch. We should keep an eye out 
+and see if we can optimize this channel  
+
+#2. COMPARING CHANNEL CHARACTERISTICS : I need to pull bsearch nonbrand sessions, mobile sessions and % 
+of traffic coming in from mobile. See if I can find anything else interesting...
+
+SELECT
+	utm_source, 
+	COUNT(DISTINCT website_sessions.website_session_id) as sessions, 
+	COUNT(DISTINCT 
+		CASE WHEN website_sessions.device_type = 'mobile' THEN website_sessions.website_session_id 
+    	ELSE NULL END) AS mobile_sessions, 
+	COUNT(DISTINCT 
+		CASE WHEN website_sessions.device_type = 'mobile' THEN website_sessions.website_session_id 
+    	ELSE NULL END) /COUNT(DISTINCT website_sessions.website_session_id) as mobile_percentage, 
+	COUNT(DISTINCT 
+		CASE WHEN website_sessions.device_type = 'mobile' THEN orders.website_session_id 
+	ELSE NULL END) AS mobile_orders 
+FROM website_sessions 
+LEFT JOIN orders 
+	ON orders.website_session_id = website_sessions.website_session_id 
+WHERE utm_source IN ('bsearch','gsearch') 
+AND utm_campaign = 'nonbrand' 
+AND website_sessions.created_at BETWEEN '2012-08-22' AND '2012-11-30' 
+GROUP by 1; 
+
+-- From here we can see that bsearch only has 8.6% of mobile sessions. 
+Whereas gsearch has 24% of mobile sessions. And I also figured out how many of those sessions 
+actually placed an order and we made a sale. Gsearch mobile sessions had 77 orders 
+Bsearch mobile sessions ONLY had 5 orders 
+
+#3. CROSS CHANNEL BID OPTIMIZATION - I need to pull nonbrand conversion rates from session to order for gsearch 
+and bsearch and slice the data by device type  (mobile and desktop) BETWEEN 2012-08-22 AND 2012-09-18 
+
+SELECT 
+	website_sessions.device_type, 
+	website_sessions.utm_source, 
+	COUNT(DISTINCT website_sessions.website_session_id) AS sessions, 
+	COUNT(DISTINCT orders.website_session_id) AS orders,  
+	COUNT(DISTINCT orders.website_session_id)/COUNT(DISTINCT website_sessions.website_session_id) AS conv_rate 
+FROM website_sessions 
+LEFT JOIN orders 
+ON orders.website_session_id = website_sessions.website_session_id 
+WHERE 	website_sessions.created_at > '2012-08-22' 
+	AND website_sessions.created_at <'2012-09-19' 
+	AND website_sessions.utm_source IN ('bsearch','gsearch') 
+	AND website_sessions.utm_campaign = 'nonbrand' 
+GROUP BY 1,2 
+ORDER BY 1; 
+
+-- This shows we should differentiate our bids to optimize overall marketing budget. We should bid down on bsearch on its underperformance 
+
+#4.ANALYZING CHANNEL PORTFOLIO TRENDS - I need to pull Weekly session volume for gsearch/bsearch NONBRAND 
+and breakdown by device FROM 2012-11-04 TO 2012-12-22 
+-- We bid down on bsearch 12/2.  SHOW PERCENT  
+
+SELECT 
+	-- yearweek(created_at), 
+	MIN(DATE(website_sessions.created_at)) AS week_start_date, 
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'desktop' AND utm_source = 'gsearch' THEN website_session_id 
+    	ELSE NULL END) AS g_desktop_sessions, 
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'desktop' AND utm_source = 'bsearch' THEN website_session_id 
+    	ELSE NULL END) AS b_desktop_sessions, 
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'desktop' AND utm_source = 'bsearch' THEN website_session_id 
+    	ELSE NULL END)/ COUNT(DISTINCT  
+	CASE WHEN device_type = 'desktop' AND utm_source = 'gsearch' THEN website_session_id 
+   	 ELSE NULL END) AS b_percent_of_g_desktop, 
+
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'mobile' AND utm_source = 'gsearch' THEN website_session_id 
+    	ELSE NULL END) AS g_mobile_sessions, 
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'mobile' AND utm_source = 'bsearch'  THEN website_session_id 
+   	 ELSE NULL END) AS b_mobile_sessions, 
+	 ---bottom query is creating PERCENT--
+	COUNT(DISTINCT  
+		CASE WHEN device_type = 'mobile' AND utm_source = 'bsearch'  THEN website_session_id 
+    	ELSE NULL END)/COUNT(DISTINCT CASE WHEN device_type = 'mobile' AND utm_source = 'gsearch' THEN website_session_id 
+   	ELSE NULL END) AS b_percent_of_g_mobile
+FROM website_sessions 
+	WHERE created_at BETWEEN '2012-11-04' AND '2012-12-22' 
+	AND utm_campaign = 'nonbrand' 
+GROUP BY yearweek(created_at); 
+-- Bid change impacted volume after 12/02. b search is less price elastic on mobile. Meaning it was less 
+sensitive to the bid change that happened on 12/02 since numbers are still steady
+
+#5.-- ANALYZING DIRECT TRAFFIC - I need to pull organic search, direct type and paid search sessions by month 
+and show % of paid search nonbrand 
+COLUMNS SHOWN: 
+-- yr | month | nonbrand | brand | brand % of nonbrand | direct | direct % of nonbrand | organic | organice % of nonbrand  
+
+SELECT 
+
+	YEAR(created_at) as year, 
+	Month(created_at) as month, 
+	COUNT(DISTINCT 
+		CASE WHEN utm_campaign = 'nonbrand' THEN website_session_id 
+    	ELSE NULL END) as nonbrand, 
+	COUNT(DISTINCT 
+		CASE WHEN utm_campaign = 'brand' THEN website_session_id 
+   	 ELSE NULL END) as brand, 
+	COUNT(DISTINCT 
+	CASE WHEN utm_campaign = 'brand' THEN website_session_id ELSE NULL END) /COUNT(DISTINCT 
+	CASE WHEN utm_campaign = 'nonbrand' THEN website_session_id ELSE NULL END) AS brand_percent_of_nonBrand, 
+	
+	COUNT(DISTINCT 
+		CASE WHEN http_referer IS NULL THEN website_session_id 
+    	ELSE NULL END) as direct, 
+    	COUNT(DISTINCT 
+	CASE WHEN http_referer IS NULL THEN website_session_id ELSE NULL END)/ COUNT(DISTINCT 
+	CASE WHEN utm_campaign = 'nonbrand' THEN website_session_id 
+   	ELSE NULL END) as direct_percent_of_nonbrand 
+    	,COUNT(DISTINCT 
+		CASE WHEN utm_source IS NULL AND http_referer IN ('https://www.gsearch.com','https://www.bsearch.com') THEN website_session_id 
+        ELSE NULL END) as organic 
+	,COUNT(DISTINCT 
+		CASE WHEN utm_source IS NULL AND http_referer IN ('https://www.gsearch.com','https://www.bsearch.com') THEN website_session_id 
+        ELSE NULL END)/COUNT(DISTINCT CASE WHEN utm_campaign = 'nonbrand' THEN website_session_id ELSE NULL END) AS organic_percent_of_nonbrand 
+FROM website_sessions 
+WHERE created_at < '2012-12-23' 
+GROUP BY 1,2;
+-- We can see that overtime organic search is picking up. Going from 2% in April, all the wat to 7.4% by December. 
+Which also is going faster than nonbrand because then we aren't paying for organic search.   
+Nonbrand, direct and organic searches are all growing on a similar trend so our brand is picking up a lot of steam 
+(start thinking how many of these searches converted to orders and compare them?) 
+
+--------------------------------------------- SECTION SIX : Analyzing Business Patterns and Seasonality  ------------------------------------------------------
+#1. Analyzing Seasonality -  Looking at 2012 monthly and weekly volume patterns 
+ Pull session volume and order volume 
+
+SELECT 
+	YEAR(website_sessions.created_at) as yr 
+	,MONTH(website_sessions.created_at) as mo 
+	,COUNT(DISTINCT website_sessions.website_session_id) as sessions 
+	,COUNT(DISTINCT orders.order_id) as orders 
+FROM website_sessions 
+LEFT JOIN orders 
+	ON website_sessions.website_session_id = orders.website_session_id 
+WHERE website_sessions.created_at < '2013-01-01' 
+GROUP BY 1,2; 
+SELECT 
+	-- YEARweek(website_sessions.created_at) as yr 
+	MIN(DATE(website_sessions.created_at)) as start_week 
+	,COUNT(DISTINCT website_sessions.website_session_id) as sessions 
+	,COUNT(DISTINCT orders.order_id) as orders 
+FROM website_sessions 
+LEFT JOIN orders 
+	ON website_sessions.website_session_id = orders.website_session_id 
+WHERE website_sessions.created_at < '2013-01-01' 
+GROUP BY YEARWEEK(website_sessions.created_at) ; 
+--From this we can see that we had a significant increase in volume 
+Around the holidays. Specifically Black Friday and Cyber Monday weeks 
+For the future, we need to keep in mind about making sure we have the  
+Customer support and inventory management during these surges around the holidays 
+To accommodate increase traffic and orders.  
+
+#2.-- Analyzing business patterns - I need to Analyze average website session volume, by hour of the day 
+and by day of the week so we can staff customer support reps appropriately  
+AVOID holidays. Keep timeframe from 9/15-11/15 2012 
+
+SELECT  
+	hr 
+	,ROUND(AVG(website_sessions),1) as Avg_sessions 
+	,ROUND(AVG(CASE WHEN wkday = 0 THEN website_sessions ELSE NULL END),1) as mon 
+	,ROUND(AVG(CASE WHEN wkday = 1 THEN website_sessions ELSE NULL END),1)as tues 
+	,ROUND(AVG(CASE WHEN wkday = 2 THEN website_sessions ELSE NULL END),1) as wed 
+	,ROUND(AVG(CASE WHEN wkday = 3 THEN website_sessions ELSE NULL END),1) as thur 
+	,ROUND(AVG(CASE WHEN wkday = 4 THEN website_sessions ELSE NULL END),1) as fri 
+	,ROUND(AVG(CASE WHEN wkday = 5 THEN website_sessions ELSE NULL END),1) as sat 
+	,ROUND(AVG(CASE WHEN wkday = 6 THEN website_sessions ELSE NULL END),1) as sun 
+FROM ( 
+	SELECT 
+		DATE(created_at) as created_date, 
+		WEEKDAY(created_at) as wkday,  
+		HOUR(created_at) as hr,  
+		COUNT(distinct website_session_id) as website_sessions 
+	FROM website_sessions 
+	WHERE created_at BETWEEN '2012-09-15' AND '2012-11-15' 
+	GROUP BY 1,2,3 
+) alias 
+GROUP BY 1 
+ORDER BY 1;
+-- From this we can see that we'll need more support staff during hours of 8am - 5pm
+
+
+ 
+---------------------------------------------------- SECTION SEVEN :PRODUCT ANALYSIS  -----------------------------------------------------------------
+ #1.Product Level Sales Analysis Assignment - I need to Pull monthly trends to date (2013-01-04) for number of sales, 
+ total revenue and total margin generated 
+
+SELECT 
+	YEAR(created_at) as yr 
+	,MONTH(created_at) as mo 
+	,COUNT(DISTINCT order_id) as number_of_sales 
+	,SUM(price_usd) as total_revenue 
+	,SUM(price_usd - cogs_usd) AS total_margin 
+FROM orders 
+WHERE created_at < '2013-01-04' 
+GROUP BY 1,2; 
+
+#2.-- ANALYZING PRODUCT LAUNCH - I need to pull Monthly order volume, overall conversion rates, revenue per session 
+and a breakdown of sales by product  and created at BETWEEN '2012-04-01' AND '2013-04-05' 
+
+SELECT 
+	YEAR(website_sessions.created_at) as yr 
+	,MONTH(website_sessions.created_at) as mo 
+	,COUNT(DISTINCT order_id) as orders 
+	,COUNT(DISTINCT orders.order_id)/COUNT(DISTINCT website_sessions.website_session_id) AS conv_rate 
+	,ROUND(SUM(price_usd)/COUNT(DISTINCT website_sessions.website_session_id),1) as revenue_per_session 
+	,COUNT(DISTINCT CASE WHEN primary_product_id = 1 THEN orders.order_id ELSE NULL END) AS product_one_orders 
+	,COUNT(DISTINCT CASE WHEN primary_product_id = 2 THEN orders.order_id ELSE NULL END) AS product_two_orders 
+FROM website_sessions 
+LEFT JOIN orders 
+	ON website_sessions.website_session_id = orders.website_session_id 
+WHERE website_sessions.created_at BETWEEN '2012-04-01' AND '2013-04-05' 
+GROUP BY 1,2 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
