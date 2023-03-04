@@ -70,4 +70,4 @@ JOIN province_names pr
 GROUP BY pr.province_name
 HAVING
   SUM(gender = 'M') > SUM(gender = 'F');
-  
+   
