@@ -25,6 +25,148 @@ The database has 6 tables representing data from March 2012 – May 2015
 Source:  
 https://www.udemy.com/course/advanced-sql-mysql-for-analytics-business-intelligence/?src=sac&kw=advance+sql 
 
+
+*****I moved section 8 to top of this repository to showcase most recent skills. Everything else after this is in order***
+
+----------------------------------------------------- SECTION EIGHT : CROSS SELL ANALYSIS   --------------------------------------------------------------
+#1. We need to assist in understanding the impact of adding cross-sell functionality to the website
+On 9/25/2013 the company started giving customers the option to add a second product from the cart page.
+I need to analyze the month before and the month after the change. 
+I need show a click-thru-rate from the /cart page, the average products per order, the average order value,
+and the overall revenue per /cart page view. 
+I am going to organize my results showing 2 time periods:
+A.Pre_Cross_Selling (8/25-9/25)
+B.Post_Cross_Selling (9/25 - 10/25) 
+
+
+CREATE TEMPORARY TABLE Cart_ShippingTable
+SELECT
+	website_session_id 
+	,MAX(cart_page) AS cart
+	,MAX(shipping_page) AS shipping
+FROM (
+	SELECT 
+		website_pageviews.pageview_url 
+		,website_sessions.website_session_id 
+   		,website_sessions.created_at
+    		,CASE WHEN pageview_URL ='/cart' THEN 1 ELSE 0 END AS cart_page
+    		,CASE WHEN pageview_URL ='/shipping' THEN 1 ELSE 0 END AS shipping_page
+	FROM 
+		website_sessions
+	LEFT JOIN 
+		website_pageviews
+		ON website_sessions.website_session_id = website_pageviews.website_session_id  
+	WHERE 
+		website_pageviews.created_at > '2013-08-25'
+		and website_pageviews.created_at < '2013-10-25'
+    		AND pageview_url IN ('/cart','/shipping')
+    ) AS tableAlias
+GROUP BY website_session_id;
+-- I created this first table to pull up all the relevant website_session_id's and The subquery creates two additional columns named 
+cart_page and shipping_page which contain binary flags that are set to 1 if the user visited the "/cart" or "/shipping" page.
+
+
+CREATE TEMPORARY TABLE carts_ordersTable
+SELECT
+	cart_shippingtable.website_session_id
+	,orders.order_id
+	,orders.primary_product_id 
+	,orders.items_purchased
+	,orders.price_usd 
+	,orders.cogs_usd
+FROM 
+	cart_shippingtable
+
+LEFT JOIN 
+	orders
+	ON orders.website_session_id = cart_shippingtable.website_session_id
+WHERE 	
+	created_at > '2013-08-25'
+	AND created_at < '2013-10-25';
+-- This 2nd table pulls the relevant website_session_id's from the 1st table I created and left joined it with the orders table.
+
+CREATE TEMPORARY TABLE FinalTable
+SELECT
+	cart_shippingtable.website_session_id
+	,cart
+	,shipping
+	,order_id
+	,primary_product_id
+	,items_purchased
+	,price_usd
+	,cogs_usd
+FROM 
+	cart_shippingtable
+LEFT JOIN 
+	carts_ordersTable
+	ON cart_shippingtable.website_session_id = carts_ordersTable.website_session_id;
+-- And finally I created a 3rd table to combine the information pulled from BOTH the 1st and 2nd tables together. 
+
+
+SELECT
+	(CASE WHEN website_sessions.created_at BETWEEN '2013-08-25' AND '2013-09-25' THEN 'A.PreCrossSell'
+	WHEN website_sessions.created_at BETWEEN '2013-09-25' AND '2013-10-25' THEN 'B.PostCrossSell'
+   	ELSE NULL END) AS Time_period, 
+    
+	COUNT(DISTINCT CASE WHEN cart = 1 THEN FinalTable.website_session_id ELSE NULL END) AS cart_sessions,
+	COUNT(DISTINCT CASE WHEN shipping = 1 THEN FinalTable.website_session_id ELSE NULL END) AS clicked_thru_to_shipping,
+	
+	COUNT(DISTINCT CASE WHEN shipping = 1 THEN FinalTable.website_session_id ELSE NULL END)/
+	COUNT(DISTINCT CASE WHEN cart = 1 THEN FinalTable.website_session_id ELSE NULL END) AS rate,
+	
+	SUM(FinalTable.items_purchased) as Proucts_purchased,
+	SUM(FinalTable.items_purchased)/COUNT(DISTINCT finaltable.order_id) AS products_per_order,
+	ROUND(AVG(FinalTable.price_usd),2) as AverageOrderPrice,
+	SUM(FinalTable.price_usd)/COUNT(DISTINCT finaltable.website_session_id) as Revenue_per_cart_pageview
+FROM FinalTable
+	LEFT JOIN website_sessions
+    	ON finaltable.website_session_id = website_sessions.website_session_id
+GROUP BY 1
+
+Time_period	| cart_sessions | clicked_thru_to_shopping | rate | Products_purchased | Products_Per_order | AverageOrderPrice | Revenue_per_cart_pageview
+A.PreCrossSell	| 1830		| 1229			   |.6716 | 652		       | 1.0000             | 51.42		|18.318842
+B.PostCrossSell	| 1975		| 1351			   |.6841 | 701		       | 1.0447	            | 54.25	 	|18.431894
+
+--- From this analysis we can see that the rate after the new ability to add a 2nd product didn't go down which is good
+And that the Average order price, revenue per cart session are all slightly up. 
+I think attempting to cross sell was a good idea for business, it's not a total game changer but we see an increase of revenue! 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ------------------------------------------SECTION ONE : ANALYZING TRAFFIC SOURCES --------------------------------------------------
 #1. Finding top traffic sources and breaking down by UTM source, UTM Campaign and referring domain 
 SELECT  
@@ -790,106 +932,3 @@ WHERE
 GROUP BY 1,2 
 
  
------------------------------------------------------ SECTION EIGHT : CROSS SELL ANALYSIS   --------------------------------------------------------------
-#1. We need to assist in understanding the impact of adding cross-sell functionality to the website
-On 9/25/2013 the company started giving customers the option to add a second product from the cart page.
-I need to analyze the month before and the month after the change. 
-I need show a click-thru-rate from the /cart page, the average products per order, the average order value,
-and the overall revenue per /cart page view. 
-I am going to organize my results showing 2 time periods:
-A.Pre_Cross_Selling (8/25-9/25)
-B.Post_Cross_Selling (9/25 - 10/25) 
-
-
-CREATE TEMPORARY TABLE Cart_ShippingTable
-SELECT
-	website_session_id 
-	,MAX(cart_page) AS cart
-	,MAX(shipping_page) AS shipping
-FROM (
-	SELECT 
-		website_pageviews.pageview_url 
-		,website_sessions.website_session_id 
-   		,website_sessions.created_at
-    		,CASE WHEN pageview_URL ='/cart' THEN 1 ELSE 0 END AS cart_page
-    		,CASE WHEN pageview_URL ='/shipping' THEN 1 ELSE 0 END AS shipping_page
-	FROM 
-		website_sessions
-	LEFT JOIN 
-		website_pageviews
-		ON website_sessions.website_session_id = website_pageviews.website_session_id  
-	WHERE 
-		website_pageviews.created_at > '2013-08-25'
-		and website_pageviews.created_at < '2013-10-25'
-    		AND pageview_url IN ('/cart','/shipping')
-    ) AS tableAlias
-GROUP BY website_session_id;
--- I created this first table to pull up all the relevant website_session_id's and The subquery creates two additional columns named 
-cart_page and shipping_page which contain binary flags that are set to 1 if the user visited the "/cart" or "/shipping" page.
-
-
-CREATE TEMPORARY TABLE carts_ordersTable
-SELECT
-	cart_shippingtable.website_session_id
-	,orders.order_id
-	,orders.primary_product_id 
-	,orders.items_purchased
-	,orders.price_usd 
-	,orders.cogs_usd
-FROM 
-	cart_shippingtable
-
-LEFT JOIN 
-	orders
-	ON orders.website_session_id = cart_shippingtable.website_session_id
-WHERE 	
-	created_at > '2013-08-25'
-	AND created_at < '2013-10-25';
--- This 2nd table pulls the relevant website_session_id's from the 1st table I created and left joined it with the orders table.
-
-CREATE TEMPORARY TABLE FinalTable
-SELECT
-	cart_shippingtable.website_session_id
-	,cart
-	,shipping
-	,order_id
-	,primary_product_id
-	,items_purchased
-	,price_usd
-	,cogs_usd
-FROM 
-	cart_shippingtable
-LEFT JOIN 
-	carts_ordersTable
-	ON cart_shippingtable.website_session_id = carts_ordersTable.website_session_id;
--- And finally I created a 3rd table to combine the information pulled from BOTH the 1st and 2nd tables together. 
-
-
-SELECT
-	(CASE WHEN website_sessions.created_at BETWEEN '2013-08-25' AND '2013-09-25' THEN 'A.PreCrossSell'
-	WHEN website_sessions.created_at BETWEEN '2013-09-25' AND '2013-10-25' THEN 'B.PostCrossSell'
-   	ELSE NULL END) AS Time_period, 
-    
-	COUNT(DISTINCT CASE WHEN cart = 1 THEN FinalTable.website_session_id ELSE NULL END) AS cart_sessions,
-	COUNT(DISTINCT CASE WHEN shipping = 1 THEN FinalTable.website_session_id ELSE NULL END) AS clicked_thru_to_shipping,
-	
-	COUNT(DISTINCT CASE WHEN shipping = 1 THEN FinalTable.website_session_id ELSE NULL END)/
-	COUNT(DISTINCT CASE WHEN cart = 1 THEN FinalTable.website_session_id ELSE NULL END) AS rate,
-	
-	SUM(FinalTable.items_purchased) as Proucts_purchased,
-	SUM(FinalTable.items_purchased)/COUNT(DISTINCT finaltable.order_id) AS products_per_order,
-	ROUND(AVG(FinalTable.price_usd),2) as AverageOrderPrice,
-	SUM(FinalTable.price_usd)/COUNT(DISTINCT finaltable.website_session_id) as Revenue_per_cart_pageview
-FROM FinalTable
-	LEFT JOIN website_sessions
-    	ON finaltable.website_session_id = website_sessions.website_session_id
-GROUP BY 1
-
-Time_period	| cart_sessions | clicked_thru_to_shopping | rate | Products_purchased | Products_Per_order | AverageOrderPrice | Revenue_per_cart_pageview
-A.PreCrossSell	| 1830		| 1229			   |.6716 | 652		       | 1.0000             | 51.42		|18.318842
-B.PostCrossSell	| 1975		| 1351			   |.6841 | 701		       | 1.0447	            | 54.25	 	|18.431894
-
---- From this analysis we can see that the rate after the new ability to add a 2nd product didn't go down which is good
-And that the Average order price, revenue per cart session are all slightly up. 
-I think attempting to cross sell was a good idea for business, it's not a total game changer but we see an increase of revenue! 
-
