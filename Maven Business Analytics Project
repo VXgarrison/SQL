@@ -142,31 +142,6 @@ I think attempting to cross sell was a good idea for business, it's not a total 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ------------------------------------------SECTION ONE : ANALYZING TRAFFIC SOURCES --------------------------------------------------
 #1. Finding top traffic sources and breaking down by UTM source, UTM Campaign and referring domain 
 SELECT  
