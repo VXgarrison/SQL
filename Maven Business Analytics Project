@@ -28,14 +28,20 @@ https://www.udemy.com/course/advanced-sql-mysql-for-analytics-business-intellige
 ------------------------------------------SECTION ONE : ANALYZING TRAFFIC SOURCES --------------------------------------------------
 #1. Finding top traffic sources and breaking down by UTM source, UTM Campaign and referring domain 
 SELECT  
-	utm_source, 
-	utm_campaign, 
-	http_referer, 
-	COUNT(DISTINCT website_session_id) as sessions 
-FROM website_sessions 
-WHERE  created_at < '2012-04-12' 
-GROUP BY 1,2,3 
+	 utm_source 
+	,utm_campaign 
+	,http_referer
+	,COUNT(DISTINCT website_session_id) as sessions 
+FROM
+	website_sessions 
+WHERE  
+	created_at < '2012-04-12' 
+GROUP BY 
+	 1
+	,2
+	,3 
 ORDER BY 4 DESC 
+
 --  Based on this data, I should focus on the gsearch nonbrand and see what I can optimize here since it's our major traffic source.  
 I need to see if these sessions are actually driving sales 
  
@@ -44,16 +50,19 @@ I need to see if these sessions are actually driving sales
 Display total sessions, orders and sessions_to_order_Conv_Rate, up until 4/14/2012 
 
 SELECT 
-    COUNT(DISTINCT website_sessions.website_session_id) as TotalSessions,  
-    COUNT(DISTINCT orders.order_id) AS TotalOrders,  
-    COUNT(DISTINCT orders.order_id)/COUNT(DISTINCT website_sessions.website_session_id) as ConvRate 
-FROM website_sessions 
-LEFT JOIN orders 
+    ,COUNT(DISTINCT website_sessions.website_session_id) as TotalSessions  
+    ,COUNT(DISTINCT orders.order_id) AS TotalOrders  
+    ,COUNT(DISTINCT orders.order_id)/COUNT(DISTINCT website_sessions.website_session_id) as ConvRate 
+FROM 
+	website_sessions 
+LEFT JOIN 
+	orders 
 	ON website_sessions.website_session_id = orders.website_session_id 
 	
 WHERE 	website_sessions.created_at < '2012-04-14' 
 	AND utm_source = 'gsearch' 
     	AND utm_campaign = 'nonbrand'; 
+	
 -- Less than 4% conversion rate. I want my marketing director to bid down on these types of sessions. 
 
 #3. Based on the conversion rate, marketing director bid down gsearch nonbrand  4/15/12. 
@@ -61,15 +70,20 @@ Now we need to display number of sessions up until May 10th for gsearch nonbrand
 and group by week start date. We want to see if the bid changes caused volume to drop 
 
 SELECT 
-	-- Year(created_at) AS yr, 
-	-- week(created_at) AS wk, 
-	MIN(DATE(created_at)) as week_start_date, 
-	COUNT(DISTINCT website_session_id) as num_of_sessions 
-FROM website_sessions 
-WHERE 	created_at < '2012-05-10' 
+	-- 	Year(created_at) AS yr
+	-- 	,week(created_at) AS wk
+		,MIN(DATE(created_at)) as week_start_date 
+		,COUNT(DISTINCT website_session_id) as num_of_sessions 
+FROM 
+	website_sessions 
+WHERE 	
+	created_at < '2012-05-10' 
 	AND utm_source = 'gsearch' 
    	AND utm_campaign = 'nonbrand' 
-GROUP BY Year(created_at), week(created_at); 
+GROUP BY 
+	year(created_at)
+	,week(created_at); 
+
 -- After running this query, looks like the number of sessions have dropped. 
 I need to start thinking about how we can make the campaigns more efficient 
 So we can increase the volume  
@@ -78,13 +92,17 @@ So we can increase the volume
 (mobile vs. Desktop) and see which performs better to decide if we need to bid up on either one to get more volume.  
 
 SELECT 
-	ws.device_type,  
-	COUNT(DISTINCT ws.website_session_id) as sessions, 
-	COUNT(DISTINCT o.order_id) as orders, 
-	COUNT(DISTINCT o.order_id)/COUNT(DISTINCT ws.website_session_id) as convRate 
-FROM website_sessions ws 
-	LEFT JOIN orders o ON ws.website_session_id = o.website_session_id 
-WHERE	 ws.created_at < '2012-05-11' 
+	ws.device_type  
+	,COUNT(DISTINCT ws.website_session_id) as sessions 
+	,COUNT(DISTINCT o.order_id) as orders
+	,COUNT(DISTINCT o.order_id)/COUNT(DISTINCT ws.website_session_id) as convRate 
+FROM 
+	website_sessions ws 
+LEFT JOIN 
+	orders o 
+	ON ws.website_session_id = o.website_session_id 
+WHERE	 
+	ws.created_at < '2012-05-11' 
 	AND utm_source = 'gsearch' 
 	AND utm_campaign = 'nonbrand' 
 GROUP BY 1 ;
@@ -100,11 +118,15 @@ SELECT
 	MIN(DATE(created_at)) as week_start_date, 
 	COUNT(DISTINCT CASE WHEN device_type = 'desktop' THEN website_session_id ELSE NULL END) as desktop_sessions, 
 	COUNT(DISTINCT CASE WHEN device_type = 'mobile' THEN website_session_id ELSE NULL END) as mobile_sessions 
-FROM website_sessions 
-WHERE 	created_at  BETWEEN '2012-04-15' AND '2012-06-09' 
+FROM 
+	website_sessions 
+WHERE 	
+	created_at  BETWEEN '2012-04-15' AND '2012-06-09' 
 	AND utm_source = 'gsearch' 
 	AND utm_campaign = 'nonbrand' 
-GROUP BY Year(created_at), week(created_at);
+GROUP BY 
+	Year(created_at)
+	,week(created_at);
 --Recommended to marketing director to increase desktop bids and we see increase in session volume. 
 
 
@@ -112,12 +134,16 @@ GROUP BY Year(created_at), week(created_at);
 
 #1. I want to see list of the pageview_URLS and rank them by most session volume.  
 SELECT  
-    pageview_url,  
-    COUNT(DISTINCT website_pageview_id) as pageviews 
-FROM website_pageviews 
-WHERE created_at < '2012-06-09' 
-GROUP BY 1 
-ORDER BY pageviews DESC;
+    pageview_url  
+    ,COUNT(DISTINCT website_pageview_id) as pageviews 
+FROM 
+	website_pageviews 
+WHERE 
+	created_at < '2012-06-09' 
+GROUP BY
+	1 
+ORDER BY 
+	pageviews DESC;
 --We can see from this query /home, /products and /the-original-mr-fuzzy get the most of our traffic  
 --I'm going to be thinking about performing entry page analysis. 
 
@@ -128,17 +154,24 @@ CREATE TEMPORARY TABLE first_pageview
 SELECT  
 	website_session_id, 
 	MIN(website_pageview_id) as MinPageViewID 
-FROM website_pageviews 
-WHERE website_pageview_id < 1000 
-GROUP BY 1; 
+FROM 
+	website_pageviews 
+WHERE 
+	website_pageview_id < 1000 
+GROUP BY 
+	1; 
+--end temp table
 
 SELECT  
-	website_pageviews.pageview_url as landingPage, -- aka 'Entry page' 
-	COUNT(DISTINCT first_pageview.website_session_id) as NumberofSessions 
-FROM first_pageview 
-LEFT JOIN website_pageviews 
+	website_pageviews.pageview_url as landingPage -- aka 'Entry page' 
+	,COUNT(DISTINCT first_pageview.website_session_id) as NumberofSessions 
+FROM 
+	first_pageview 
+LEFT JOIN 
+	website_pageviews 
 	ON first_pageview.minPageViewID = website_pageviews.website_pageview_id 
-GROUP BY 1; 
+GROUP BY 
+	1; 
 
 --Up until this point in time, looks like ALL of our traffic is landing on the /home page. 
 --Time to see how much of these sessions are actually landing sales for us.
