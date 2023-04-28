@@ -737,12 +737,14 @@ SELECT
 	,ROUND(AVG(CASE WHEN wkday = 6 THEN website_sessions ELSE NULL END),1) as sun 
 FROM ( 
 	SELECT 
-		DATE(created_at) as created_date, 
-		WEEKDAY(created_at) as wkday,  
-		HOUR(created_at) as hr,  
-		COUNT(distinct website_session_id) as website_sessions 
-	FROM website_sessions 
-	WHERE created_at BETWEEN '2012-09-15' AND '2012-11-15' 
+		DATE(created_at) as created_date 
+		,WEEKDAY(created_at) as wkday  
+		,HOUR(created_at) as hr  
+		,COUNT(distinct website_session_id) as website_sessions 
+	FROM 
+		website_sessions 
+	WHERE 
+		created_at BETWEEN '2012-09-15' AND '2012-11-15' 
 	GROUP BY 1,2,3 
 ) alias 
 GROUP BY 1 
@@ -801,16 +803,16 @@ B.Post_Cross_Selling (9/25 - 10/25)
 
 CREATE TEMPORARY TABLE Cart_ShippingTable
 SELECT
-	website_session_id, 
-	MAX(cart_page) AS cart,
-	MAX(shipping_page) AS shipping
+	website_session_id 
+	,MAX(cart_page) AS cart
+	,MAX(shipping_page) AS shipping
 FROM (
 	SELECT 
-		website_pageviews.pageview_url, 
-		website_sessions.website_session_id, 
-   		website_sessions.created_at,
-    		CASE WHEN pageview_URL ='/cart' THEN 1 ELSE 0 END AS cart_page,
-    		CASE WHEN pageview_URL ='/shipping' THEN 1 ELSE 0 END AS shipping_page
+		website_pageviews.pageview_url 
+		,website_sessions.website_session_id 
+   		,website_sessions.created_at
+    		,CASE WHEN pageview_URL ='/cart' THEN 1 ELSE 0 END AS cart_page
+    		,CASE WHEN pageview_URL ='/shipping' THEN 1 ELSE 0 END AS shipping_page
 	FROM 
 		website_sessions
 	LEFT JOIN 
@@ -828,12 +830,12 @@ cart_page and shipping_page which contain binary flags that are set to 1 if the 
 
 CREATE TEMPORARY TABLE carts_ordersTable
 SELECT
-	cart_shippingtable.website_session_id, 
-	orders.order_id,
-	orders.primary_product_id, 
-	orders.items_purchased,
-	orders.price_usd, 
-	orders.cogs_usd
+	cart_shippingtable.website_session_id
+	,orders.order_id
+	,orders.primary_product_id 
+	,orders.items_purchased
+	,orders.price_usd 
+	,orders.cogs_usd
 FROM 
 	cart_shippingtable
 
@@ -847,14 +849,14 @@ WHERE
 
 CREATE TEMPORARY TABLE FinalTable
 SELECT
-	cart_shippingtable.website_session_id,
-	cart,
-	shipping,
-	order_id,
-	primary_product_id,
-	items_purchased,
-	price_usd,
-	cogs_usd
+	cart_shippingtable.website_session_id
+	,cart
+	,shipping
+	,order_id
+	,primary_product_id
+	,items_purchased
+	,price_usd
+	,cogs_usd
 FROM 
 	cart_shippingtable
 LEFT JOIN 
