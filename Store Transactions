@@ -1,0 +1,63 @@
+This database comes from Brandon Southern of MentorAnalytics.io. Part of the advance course, I had to download excel files and upload
+the data into PostgreSQL
+
+create table products (
+
+	product_id bigint
+	,description varchar (255)
+	,review_count int
+	,price decimal (14,2)
+	,amazon_url varchar (255)
+	,category varchar (255)
+	,console_platform varchar(255)
+
+);
+
+create table transaction_items (
+	transaction_id_item bigint
+	,transaction_id bigint
+	,product_id int
+
+);
+
+create table transactions (
+
+	customer_id bigint
+	,trans_dt date
+	,transaction_id bigint
+	,items_in_trans int
+	,store_id bigint
+
+
+);
+
+
+create table customers (
+	customer_id bigint
+	,first_name varchar (255)
+	,last_name_id bigint
+	,last_name varchar (255)
+	,first_purchase_dt date
+	,last_purchase_dt date
+	,days_between_first_last_purchase_dates int
+	,number_of_transactions int
+
+);
+
+create table stores (
+	store_number int
+	,description varchar (255)
+	,address varchar (255)
+	,address_2 varchar(255)
+	,city varchar (255)
+	,state_abv varchar(2)
+	,zipcode varchar(5)
+	
+);
+
+create table daily_sales_summary (
+	trans_dt date
+	,total_sales decimal (14,2)
+	,total_sales_t30d decimal (14,2)
+
+);
