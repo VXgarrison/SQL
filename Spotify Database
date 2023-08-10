@@ -1,0 +1,73 @@
+For this project, I downloaded Spotify data from Kaggle.And then I created a table to insert Spotify data into.
+ 
+
+-- Creating the table: 
+CREATE TABLE BIT_DB.Spotifydata (
+id integer PRIMARY KEY,
+artist_name varchar NOT NULL,
+track_name varchar NOT NULL,
+track_id varchar NOT NULL,
+popularity integer NOT NULL,
+danceability decimal(4,3) NOT NULL,
+energy decimal(4,3) NOT NULL,
+key integer NOT NULL,
+loudness decimal(5,3) NOT NULL,
+mode integer NOT NULL,
+speechiness decimal(5,4) NOT NULL,
+acousticness decimal(6,5) NOT NULL,
+instrumentalness text NOT NULL,
+liveness decimal(5,4) NOT NULL,
+valence decimal(4,3) NOT NULL,
+tempo decimal(6,3) NOT NULL,
+duration_ms integer NOT NULL,
+time_signature integer NOT NULL 
+)
+
+I inserted the Spotify Data .csv into the table. I explored the data using the following SQL. 
+
+1. Who are the top 10 artists based on popularity?
+select
+  artist_name
+  ,popularity
+from 
+  spotifydata
+order by 
+  popularity desc
+limit 10;
+
+2. What's the average danceability for the 10 most popular songs?
+
+select
+  track_name
+  ,popularity
+  ,avg(danceability) as average_danceability
+from
+  spotifydata
+group by 
+  track_name
+order by 
+  popularity desc
+limit 10;
+
+3. What is the average duration of tracks in the dataset
+select
+  avg(duration_ms) as avg_mili_sec
+  ,(avg(duration_ms)/1000)/60 as avg_minutes  --I covereted duration_ms into minutes 
+from spotifydata;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
