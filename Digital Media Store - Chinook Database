@@ -1,0 +1,113 @@
+1.Show Customers (their full names, customer ID, and country) who are not in the US.
+select
+    firstName
+    ,Lastname
+    ,CustomerId
+    ,Country
+from
+    customers
+where Country <> 'USA'
+2.Show only the Customers from Brazil.
+select
+    firstName
+    ,Lastname
+    ,CustomerId
+    ,Country
+from
+    customers
+where Country = 'Brazil'
+
+
+
+
+
+
+3.Find the Invoices of customers who are from Brazil. The resulting table should show the customer's full name, 
+Invoice ID, Date of the invoice, and billing country.
+select
+    c.FirstName
+    ,c.LastName
+    ,i.invoiceId
+    ,i.invoiceDate
+    ,i.BillingCountry
+from customers c
+join invoices i 
+on i.customerId = c.customerId
+where c.Country = 'Brazil'  
+
+
+
+4.Show the Employees who are Sales Agents.
+select
+    *
+from employees
+where title like '%Sales%Agent%'
+
+
+5.Find a unique/distinct list of billing countries from the Invoice table.
+select
+distinct billingcountry
+from invoices
+
+
+
+
+6.Provide a query that shows the invoices associated with each sales agent. The resulting table should include the Sales Agent's full name.
+select
+    i.invoiceid
+    --,c.supportRepid /I added these to ensure the supportrepid matches the employee id
+    --,e.employeeid
+    ,e.FirstName
+    ,e.LastName
+from
+    invoices i
+join customers c on i.customerid = c.customerid
+join employees e on e.employeeid = c.supportrepid
+
+
+
+
+7.Show the Invoice Total, invoiceid,  Customer name, Country, and Sales Agent name for all invoices and customers.
+
+select
+    i.total
+    ,i.invoiceid
+    ,c.FirstName
+    ,c.LastName
+    ,c.Country
+    ,e.FirstName
+    ,e.LastName
+from invoices i
+join customers c
+  on i.customerid = c.customerid
+join employees e 
+  on e.employeeid = c.supportrepid
+
+
+8.How many Invoices were there in 2009?
+select 
+  count(*) as total_invoices_09
+from 
+  invoices
+where invoiceDate like '2009%'
+
+9.What are the total sales for 2009?
+select 
+  round(sum(total),2) as total_sales
+from invoices
+where 
+  invoiceDate like '2009%'
+
+
+
+10.Write a query that includes the purchased track name with each invoice line ID.
+
+ 
+
+11.Write a query that includes the purchased track name AND artist name with each invoice line ID.
+
+
+
+12.Provide a query that shows all the Tracks, and include the Album name, Media type, and Genre.
+13.Show the total sales made by each sales agent.
+14.Which sales agent made the most dollars in sales in 2009?
