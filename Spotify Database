@@ -55,7 +55,24 @@ select
   ,(avg(duration_ms)/1000)/60 as avg_minutes  --I covereted duration_ms into minutes 
 from spotifydata;
 
+4.Calculate the average popularity for the artists in the Spotify data table. 
+Then, for every artist with an average popularity of 90 or above, show their name, their average popularity, and label them as a “Top Star”.
 
+WITH pop_average_CTE AS (
+SELECT 
+    artist_name
+   ,AVG(popularity) AS average_popularity
+FROM 
+ SpotifyData 
+GROUP BY 
+ artist_name
+)
+ 
+SELECT  artist_name,
+        average_popularity,
+        'Top Star' AS tag
+FROM pop_average_CTE
+WHERE average_popularity>=90;
 
 
 
