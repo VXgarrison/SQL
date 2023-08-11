@@ -19,9 +19,6 @@ where Country = 'Brazil'
 
 
 
-
-
-
 3.Find the Invoices of customers who are from Brazil. The resulting table should show the customer's full name, 
 Invoice ID, Date of the invoice, and billing country.
 select
@@ -101,13 +98,134 @@ where
 
 
 10.Write a query that includes the purchased track name with each invoice line ID.
+select 
+    
+     t.Name
+    ,t.trackid
+    ,ii.trackid
+    ,ii.invoiceLineid
 
+
+ from tracks t
+ join invoice_items ii
+ on t.trackid = ii.trackid
  
 
 11.Write a query that includes the purchased track name AND artist name with each invoice line ID.
+select 
+    a.Name as ArtistName
+    ,t.Name as TrackName
+    -- ,t.trackid
+    --,ii.trackid
+    ,ii.invoiceLineid
 
+from invoice_items ii 
+ left join tracks t
+ on t.trackid = ii.trackid
+ 
+inner join albums al
+on al.albumid = t.albumid
+
+ left join artists a
+on a.artistid = al.artistid
 
 
 12.Provide a query that shows all the Tracks, and include the Album name, Media type, and Genre.
-13.Show the total sales made by each sales agent.
-14.Which sales agent made the most dollars in sales in 2009?
+select
+    t.Name as Track_Name
+   ,al.Title as Album_Title
+   ,mt.Name as Media_Type_Name
+   ,g.Name as Genre_Name
+from tracks t
+join albums al
+     on al.albumid = t.albumid
+join media_types mt
+    on mt.MediaTypeId = t.MediaTypeId
+join genres g
+    on g.genreId = t.GenreId
+
+
+13.Show the total sales made by each sales agent.(Employee Performance)
+select
+    e.Firstname
+   ,e.LastName
+   ,round(sum(i.total),2) as total_sales
+from invoices i
+join customers c
+    on c.customerid = i.customerid
+join employees e
+    on e.employeeid = c.supportRepid
+group by e.firstName, e.lastName
+
+
+
+
+14.Which sales agent made the most dollars in sales in 2009? (Employee Performance)
+select
+    e.Firstname
+   ,e.LastName
+   ,round(sum(i.total),2) as total_sales
+from invoices i
+join customers c
+    on c.customerid = i.customerid
+join employees e
+    on e.employeeid = c.supportRepid
+where i.invoiceDate like '2009%'
+group by e.firstName, e.lastName
+order by total_sales desc limit 1
+
+
+15.  What are the top 10 most purchased tracks? (Track Popularity) 
+select
+    count(ii.trackId) as total_purchased
+    ,t.Name as Track_Name
+from invoice_items ii
+left join tracks t
+    on t.trackid = ii.trackid
+group by t.Name
+order by total_purchased desc limit 10;
+
+
+16.Identify the top 10 customers who have spent the most on purchases. (Customer Loyalty)
+select
+    i.customerid
+    ,c.FirstName
+    ,c.LastName
+    ,sum(i.total) as total_spent
+from invoices i
+join customers c
+    on c.CustomerId = i.CustomerId
+group by i.customerid
+order by total_spent desc limit 10;
+
+17. Top Selling Genres: Which genres have generated the most revenue through track sales?
+select
+    g.Name as Genre
+   ,round(sum(i.total),2) as total_sales
+from genres g
+join tracks t 
+    on t.genreid = g.genreid
+join invoice_items ii
+    on ii.trackid = t.trackid
+join invoices i
+    on i.invoiceid = ii.invoiceid
+
+group by g.name
+order by total_sales desc;
+-- Top 3 genres are : Rock, Latin, Metal 
+
+18. Show how many tracks are in each playlist
+select
+    p.Name as PlayList_name
+   ,COUNT(pt.trackId)
+   
+from playlist_track pt
+join playlists p
+    on p.PlaylistId = pt.PlaylistId
+join tracks t
+    on pt.trackid = t.trackid
+group by playlist_Name
+
+19.Seasonal Trends: Are there specific months or seasons when our sales peak or dip?
+
+
