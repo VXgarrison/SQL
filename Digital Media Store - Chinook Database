@@ -1,3 +1,18 @@
+This project utilized a digital media database called Chinook with 11 tables: 
+albums
+artists
+customers
+employees
+genres
+invoice_items
+invoices
+media_types
+playlist_track
+playlists
+tracks
+
+I explored the data using the following SQL in SQLite: 
+
 1.Show Customers (their full names, customer ID, and country) who are not in the US.
 select
     firstName
@@ -6,7 +21,8 @@ select
     ,Country
 from
     customers
-where Country <> 'USA'
+where Country <> 'USA';
+
 2.Show only the Customers from Brazil.
 select
     firstName
@@ -15,7 +31,7 @@ select
     ,Country
 from
     customers
-where Country = 'Brazil'
+where Country = 'Brazil';
 
 
 
@@ -29,8 +45,8 @@ select
     ,i.BillingCountry
 from customers c
 join invoices i 
-on i.customerId = c.customerId
-where c.Country = 'Brazil'  
+    on i.customerId = c.customerId
+where c.Country = 'Brazil';
 
 
 
@@ -38,13 +54,15 @@ where c.Country = 'Brazil'
 select
     *
 from employees
-where title like '%Sales%Agent%'
+where 
+    title like '%Sales%Agent%';
 
 
 5.Find a unique/distinct list of billing countries from the Invoice table.
+
 select
-distinct billingcountry
-from invoices
+    distinct billingcountry
+from invoices;
 
 
 
@@ -59,7 +77,7 @@ select
 from
     invoices i
 join customers c on i.customerid = c.customerid
-join employees e on e.employeeid = c.supportrepid
+join employees e on e.employeeid = c.supportrepid;
 
 
 
@@ -86,29 +104,26 @@ select
   count(*) as total_invoices_09
 from 
   invoices
-where invoiceDate like '2009%'
+where invoiceDate like '2009%';
 
 9.What are the total sales for 2009?
 select 
   round(sum(total),2) as total_sales
 from invoices
 where 
-  invoiceDate like '2009%'
+  invoiceDate like '2009%';
 
 
 
 10.Write a query that includes the purchased track name with each invoice line ID.
 select 
-    
      t.Name
     ,t.trackid
     ,ii.trackid
     ,ii.invoiceLineid
-
-
  from tracks t
  join invoice_items ii
- on t.trackid = ii.trackid
+     on t.trackid = ii.trackid;
  
 
 11.Write a query that includes the purchased track name AND artist name with each invoice line ID.
@@ -118,7 +133,6 @@ select
     -- ,t.trackid
     --,ii.trackid
     ,ii.invoiceLineid
-
 from invoice_items ii 
  left join tracks t
  on t.trackid = ii.trackid
@@ -127,7 +141,7 @@ inner join albums al
 on al.albumid = t.albumid
 
  left join artists a
-on a.artistid = al.artistid
+on a.artistid = al.artistid;
 
 
 12.Provide a query that shows all the Tracks, and include the Album name, Media type, and Genre.
@@ -142,7 +156,7 @@ join albums al
 join media_types mt
     on mt.MediaTypeId = t.MediaTypeId
 join genres g
-    on g.genreId = t.GenreId
+    on g.genreId = t.GenreId;
 
 
 13.Show the total sales made by each sales agent.(Employee Performance)
@@ -155,9 +169,8 @@ join customers c
     on c.customerid = i.customerid
 join employees e
     on e.employeeid = c.supportRepid
-group by e.firstName, e.lastName
-
-
+group by 
+    e.firstName, e.lastName;
 
 
 14.Which sales agent made the most dollars in sales in 2009? (Employee Performance)
@@ -170,9 +183,13 @@ join customers c
     on c.customerid = i.customerid
 join employees e
     on e.employeeid = c.supportRepid
-where i.invoiceDate like '2009%'
-group by e.firstName, e.lastName
-order by total_sales desc limit 1
+where 
+    i.invoiceDate like '2009%'
+group by 
+    e.firstName, e.lastName
+order by
+    total_sales desc 
+limit 1;
 
 
 15.  What are the top 10 most purchased tracks? (Track Popularity) 
@@ -182,8 +199,11 @@ select
 from invoice_items ii
 left join tracks t
     on t.trackid = ii.trackid
-group by t.Name
-order by total_purchased desc limit 10;
+group by
+    t.Name
+order by 
+    total_purchased desc 
+limit 10;
 
 
 16.Identify the top 10 customers who have spent the most on purchases. (Customer Loyalty)
@@ -195,8 +215,10 @@ select
 from invoices i
 join customers c
     on c.CustomerId = i.CustomerId
-group by i.customerid
-order by total_spent desc limit 10;
+group by
+    i.customerid
+order by 
+    total_spent desc limit 10;
 
 17. Top Selling Genres: Which genres have generated the most revenue through track sales?
 select
@@ -209,23 +231,24 @@ join invoice_items ii
     on ii.trackid = t.trackid
 join invoices i
     on i.invoiceid = ii.invoiceid
-
-group by g.name
-order by total_sales desc;
+group by 
+    g.name
+order by 
+    total_sales desc;
 -- Top 3 genres are : Rock, Latin, Metal 
 
 18. Show how many tracks are in each playlist
 select
     p.Name as PlayList_name
    ,COUNT(pt.trackId)
-   
 from playlist_track pt
 join playlists p
     on p.PlaylistId = pt.PlaylistId
 join tracks t
     on pt.trackid = t.trackid
-group by playlist_Name
+group by
+    playlist_Name;
 
-19.Seasonal Trends: Are there specific months or seasons when our sales peak or dip?
+
 
 
