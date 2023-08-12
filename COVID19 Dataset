@@ -1,0 +1,188 @@
+In this project I used Microsoft SQL Server to explore Covid19 data set from : https://ourworldindata.org/covid-deaths
+
+
+-- looking at total cases vs total deaths. Shows likelihood of dying if you contract covid in United States------------------
+
+select
+	location
+	,date
+	,total_cases
+	,total_deaths
+	,(total_deaths/total_cases) * 100 as DeathPercentage
+from CovidDeaths
+where location = 'United States'
+
+----------------- Looking at total cases vs popoulation in US, shows what % of population got covid------------------
+select
+	location
+	,date
+	,population
+	,total_cases
+	,(total_cases/population) *100 as PopRate
+from CovidDeaths
+where location = 'United States'
+
+--------------what countries have highest infection rate compared to the population---------------------------------
+select
+	location
+	,population
+	,MAX(total_cases) as Highest_Infection_Count
+	,MAX((total_cases/population)) *100 as Percent_Population_Infected
+from CovidDeaths
+where 
+  continent is not null
+group by 
+  location, population
+order by 
+  4 desc;
+
+-- ------------------showing ountries with the highest death count per population-----------------
+select
+	location
+	--,population
+	,MAX(total_deaths) as total_death_count
+	--,MAX((total_deaths/population)) *100 as Death_Population_Rate
+from CovidDeaths
+where continent is not null
+Group by location, population
+order by 2 desc;
+
+--------------------------breaking down by CONTINENT with highest death count per population---------------
+FIRST QUERY I WROTE: 
+select
+	continent
+	--,population
+	,MAX(total_deaths) as total_death_count
+	--,MAX((total_deaths/population)) *100 as Death_Population_Rate
+from CovidDeaths
+where continent is not null
+Group by continent
+order by 2 desc;
+/* this query shows North America with total death count as 1127152, but doesn't include Canada's or Mexico's. 
+ United states death count = 1127152. Canada = 53147. Mexico = 334336 **/
+
+SO I adjusted and discovered location in dataset is also broken down by high, upper middle, lower middle and low income class groups.. interesting
+select
+	location
+	--,population
+	,MAX(total_deaths) as total_death_count
+	--,MAX((total_deaths/population)) *100 as Death_Population_Rate
+from CovidDeaths
+where continent is null
+Group by location
+order by 2 desc;
+
+location        	total_death_count
+World	                      6954323
+High income	                2898082
+Upper middle income	        2665559
+Europe	                    2074732
+Asia	                      1632626
+North America	              1602820
+South America	              1356082
+Lower middle income	        1338755
+European Union	            1242572
+Africa	                     259002
+Low income	                  47975
+Oceania	                      29056
+
+---------------------- global numbers------------------
+ 
+ select 
+	sum(new_cases) as total_cases
+	,sum(new_deaths as int)as total_deaths
+from 
+  CovidDeaths
+where 
+  continent is not null
+order by
+  1,2;
+
+total_cases    total_deaths
+769386068      7081774
+
+
+------------------------looking at total population vs vaccinations-------------------------
+
+
+select
+	d.continent
+	,d.location
+	,d.date
+	,d.population
+	,v.new_vaccinations
+	,sum(CONVERT(bigint, v.new_vaccinations )) over (partition by d.location order by d.location, d.date) as Rolling_People_Vaccinated
+from CovidDeaths d
+join CovidVaccinations v
+	on  d.location = v.location
+	and d.date = v.date
+where 
+	d.continent is not null
+order by
+	2,3
+
+
+	----------------------------------USING CTE-------------------------------------
+
+	with myCTE as
+	(select
+       d.continent
+    	,d.location
+    	,d.date
+	    ,d.population
+	    ,v.new_vaccinations
+	    ,sum(CONVERT(bigint, v.new_vaccinations )) over (partition by d.location order by d.location, d.date) as Rolling_People_Vaccinated
+from CovidDeaths d
+join CovidVaccinations v
+	on  d.location = v.location
+	and d.date = v.date
+where 
+	d.continent is not null
+--order by 2,3
+)
+select
+ location
+ ,max(rolling_people_vaccinated) as total_vaccinated-- gives me the highest total number of people vaccinated at any point in time for each specific location.
+from 
+  myCTE
+group by 
+  location
+
+
+
+-----T--------------------------------EMP TABLE-----------------------
+DROP Table if exists #PopVaccPercent
+Create Table #PopVaccPercent
+(
+	Continent nvarchar(255)
+	,Location nvarchar(255)
+	,Date datetime
+	, Population numeric
+	, New_vaccinations numeric
+	,RollingPeopleVaccinated numeric
+
+)
+Insert into #PopVaccPercent
+select
+	d.continent
+	,d.location
+	,d.date
+	,d.population
+	,v.new_vaccinations
+	,sum(CONVERT(bigint, v.new_vaccinations )) over (partition by d.location order by d.location, d.date) as Rolling_People_Vaccinated
+from CovidDeaths d
+join CovidVaccinations v
+	on  d.location = v.location
+	and d.date = v.date
+where 
+	d.continent is not null
+--order by 2,3
+
+Select * from #PopVaccPercent
+
+
+
+
+
+
+
